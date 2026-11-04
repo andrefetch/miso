@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <editline/readline.h>
+#include <editline/history.h>
 
 static char input[2048]; // buffer for user input
 char *name = "miso";
@@ -12,11 +15,13 @@ int main(int argc, char** argv) {
 
   while (1) {
 
-    fputs("miso >> ", stdout); //outputs prompt
-
-    fgets(input, 2048, stdin); // reads a line from the user input, max size 2048                                 bytes
+    char* input = readline("miso >> "); //outputs prompt
+    
+    add_history(input); 
 
     printf("No you are a %s", input);
+    
+    free(input); // frees memory held by the input
 
   }
 
