@@ -1,1 +1,2 @@
-gcc -std=c99 -Wall main.c -o main
+gcc -std=c99 -Wall main.c -ledit -o main
+
