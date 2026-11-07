@@ -1,0 +1,27 @@
+name: C Build CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc libedit-dev
+
+      - name: Build interpreter
+        run: bash ./build.sh
+
+      - name: Verify executable
+        run: test -x ./main
