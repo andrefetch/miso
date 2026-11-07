@@ -13,7 +13,7 @@ char* readline(char* prompt) {
   fgets(buffer, 2048, stdin);
   char* cpy = malloc(strlen(buffer)+1); // + 1 because we include the null terminator 
   strcpy(cpy, buffer);
-  cpy[strlen(cpy)-1] = '\0'; //remoces null terminator from cpy 
+  cpy[strlen(cpy)-1] = '\0'; //removes null terminator from cpy 
   return cpy;
 }
 
@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
 
   char *name = "Miso";
   char *version = "0.0.1";
-  char *credits = "@andrefetch on GitHub || andresilva.tech";
+  char *credits = "contribute @ github.com/andrefetch/miso";
 
   printf("%s Version %s\n", name, version);
   puts("Press Ctrl+c to Exit");
