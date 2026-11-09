@@ -1,6 +1,35 @@
 #include "mpc.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+
+// ints unsigned
+typedef uint8_t  u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
+// ints signed
+typedef int8_t  i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+
+// ptrs (unsigned & signed)
+typedef uintptr_t uptr;
+typedef intptr_t  iptr;
+
+// size_t unsigned + signed
+// (usize and isize are now defined in mpc.h)
+
+// floats & doubles
+typedef float  f32;
+typedef double f64;
+
+// bool
+typedef bool b8;
 
 // IF we are using a win32 sys
 #ifdef _WIN32
@@ -12,9 +41,10 @@ static char buffer[2048]; // buffer for user input
 char* readline(char* prompt) {
   fputs(prompt, stdout);
   fgets(buffer, 2048, stdin);
-  char* cpy = malloc(strlen(buffer)+1); // + 1 because we include the null terminator 
+  usize len = strlen(buffer);
+  char* cpy = malloc(len+1); // + 1 because we include the null terminator 
   strcpy(cpy, buffer);
-  cpy[strlen(cpy)-1] = '\0'; //removes null terminator from cpy 
+  cpy[len-1] = '\0'; //removes null terminator from cpy 
   return cpy;
 }
 
@@ -45,9 +75,9 @@ int main(int argc, char** argv) {
   ",
   Number, Operator, Expr, Miso);
 
-  char *name = "Miso";
-  char *version = "0.0.1";
-  char *credits = "contribute @ github.com/andrefetch/miso";
+  const char *name = "Miso";
+  const char *version = "0.0.1";
+  const char *credits = "contribute @ github.com/andrefetch/miso";
 
   printf("%s Version %s\n", name, version);
   puts("Press Ctrl+c to Exit");

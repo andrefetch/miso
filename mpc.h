@@ -21,6 +21,12 @@ extern "C" {
 #include <math.h>
 #include <errno.h>
 #include <ctype.h>
+#include <stdint.h>
+#include <stddef.h>
+
+/* Size typedefs */
+typedef size_t    usize;
+typedef ptrdiff_t isize;
 
 /*
 ** State Type
@@ -66,7 +72,7 @@ struct mpc_parser_t;
 typedef struct mpc_parser_t mpc_parser_t;
 
 int mpc_parse(const char *filename, const char *string, mpc_parser_t *p, mpc_result_t *r);
-int mpc_nparse(const char *filename, const char *string, size_t length, mpc_parser_t *p, mpc_result_t *r);
+int mpc_nparse(const char *filename, const char *string, usize length, mpc_parser_t *p, mpc_result_t *r);
 int mpc_parse_file(const char *filename, FILE *file, mpc_parser_t *p, mpc_result_t *r);
 int mpc_parse_pipe(const char *filename, FILE *pipe, mpc_parser_t *p, mpc_result_t *r);
 int mpc_parse_contents(const char *filename, mpc_parser_t *p, mpc_result_t *r);
