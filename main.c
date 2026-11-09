@@ -98,14 +98,14 @@ void lval_print(lval v) {
       printf("%li", v.num);
       break;
     case LVAL_ERR:
-      if(v.error == LERR_DIV_BY_ZERO) {
+      if(v.err == LERR_DIV_BY_ZERO) {
         printf("Error : Division By Zero");
       }
-      if(v.error == LERR_BAD_OP) {
+      else if(v.err == LERR_BAD_OP) {
         printf("Error : Bad Operator");
       }
-      if(v.error == LERR_BAD_NUM) {
-        printf("Error : Invalid Number")
+      else if(v.err == LERR_BAD_NUM) {
+        printf("Error : Invalid Number");
       }
   }
 }
