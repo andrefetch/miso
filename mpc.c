@@ -94,7 +94,7 @@ typedef struct {
   char *lasts;
   char last;
 
-  size_t mem_index;
+  usize mem_index;
   char mem_full[MPC_INPUT_MEM_NUM];
   mpc_mem_t mem[MPC_INPUT_MEM_NUM];
 
@@ -129,7 +129,7 @@ static mpc_input_t *mpc_input_new_string(const char *filename, const char *strin
   return i;
 }
 
-static mpc_input_t *mpc_input_new_nstring(const char *filename, const char *string, size_t length) {
+static mpc_input_t *mpc_input_new_nstring(const char *filename, const char *string, usize length) {
 
   mpc_input_t *i = malloc(sizeof(mpc_input_t));
 
@@ -234,8 +234,8 @@ static int mpc_mem_ptr(mpc_input_t *i, void *p) {
     (char*)p <  (char*)(i->mem) + (MPC_INPUT_MEM_NUM * sizeof(mpc_mem_t));
 }
 
-static void *mpc_malloc(mpc_input_t *i, size_t n) {
-  size_t j;
+static void *mpc_malloc(mpc_input_t *i, usize n) {
+  usize j;
   char *p;
 
   if (n > sizeof(mpc_mem_t)) { return malloc(n); }
@@ -254,20 +254,20 @@ static void *mpc_malloc(mpc_input_t *i, size_t n) {
   return malloc(n);
 }
 
-static void *mpc_calloc(mpc_input_t *i, size_t n, size_t m) {
+static void *mpc_calloc(mpc_input_t *i, usize n, usize m) {
   char *x = mpc_malloc(i, n * m);
   memset(x, 0, n * m);
   return x;
 }
 
 static void mpc_free(mpc_input_t *i, void *p) {
-  size_t j;
+  usize j;
   if (!mpc_mem_ptr(i, p)) { free(p); return; }
-  j = ((size_t)(((char*)p) - ((char*)i->mem))) / sizeof(mpc_mem_t);
+  j = ((usize)(((char*)p) - ((char*)i->mem))) / sizeof(mpc_mem_t);
   i->mem_full[j] = 0;
 }
 
-static void *mpc_realloc(mpc_input_t *i, void *p, size_t n) {
+static void *mpc_realloc(mpc_input_t *i, void *p, usize n) {
 
   char *q = NULL;
 
@@ -800,7 +800,7 @@ static mpc_err_t *mpc_err_or(mpc_input_t *i, mpc_err_t** x, int n) {
 static mpc_err_t *mpc_err_repeat(mpc_input_t *i, mpc_err_t *x, const char *prefix) {
 
   int j = 0;
-  size_t l = 0;
+  usize l = 0;
   char *expect = NULL;
 
   if (x == NULL) { return NULL; }
@@ -980,7 +980,7 @@ static mpc_val_t *mpcf_input_trd_free(mpc_input_t *i, int n, mpc_val_t **xs) { r
 
 static mpc_val_t *mpcf_input_strfold(mpc_input_t *i, int n, mpc_val_t **xs) {
   int j;
-  size_t l = 0;
+  usize l = 0;
   if (n == 0) { return mpc_calloc(i, 1, 1); }
   for (j = 0; j < n; j++) { l += strlen(xs[j]); }
   xs[0] = mpc_realloc(i, xs[0], l + 1);
@@ -1360,7 +1360,7 @@ int mpc_parse(const char *filename, const char *string, mpc_parser_t *p, mpc_res
   return x;
 }
 
-int mpc_nparse(const char *filename, const char *string, size_t length, mpc_parser_t *p, mpc_result_t *r) {
+int mpc_nparse(const char *filename, const char *string, usize length, mpc_parser_t *p, mpc_result_t *r) {
   int x;
   mpc_input_t *i = mpc_input_new_nstring(filename, string, length);
   x = mpc_parse_input(i, p, r);
@@ -2351,8 +2351,8 @@ static const char *mpc_re_range_escape_char(char c) {
 static mpc_val_t *mpcf_re_range(mpc_val_t *x) {
 
   mpc_parser_t *out;
-  size_t i, j;
-  size_t start, end;
+  usize i, j;
+  usize start, end;
   const char *tmp = NULL;
   const char *s = x;
   int comp = s[0] == '^' ? 1 : 0;
@@ -2530,7 +2530,7 @@ mpc_val_t *mpcf_strtriml(mpc_val_t *x) {
 
 mpc_val_t *mpcf_strtrimr(mpc_val_t *x) {
   char *s = x;
-  size_t l = strlen(s);
+  usize l = strlen(s);
   while (l > 0 && isspace((unsigned char)s[l-1])) {
     s[l-1] = '\0'; l--;
   }
@@ -2708,7 +2708,7 @@ mpc_val_t *mpcf_all_free(int n, mpc_val_t** xs) {
 
 mpc_val_t *mpcf_strfold(int n, mpc_val_t **xs) {
   int i;
-  size_t l = 0;
+  usize l = 0;
 
   if (n == 0) { return calloc(1, 1); }
 
@@ -3502,7 +3502,7 @@ static mpc_val_t *mpcaf_fold_regex(int n, mpc_val_t **xs) {
 
 /* Should this just use `isdigit` instead? */
 static int is_number(const char* s) {
-  size_t i;
+  usize i;
   for (i = 0; i < strlen(s); i++) { if (!strchr("0123456789", s[i])) { return 0; } }
   return 1;
 }
