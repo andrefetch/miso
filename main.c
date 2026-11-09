@@ -90,6 +90,26 @@ lval lval_err(i32 x) {
   return v;
 }
 
+/* prints lisp err val */ 
+void lval_print(lval v) {
+  switch(v.type) {
+    case LVAL_NUM:
+      // case that it's a number, we break
+      printf("%li", v.num);
+      break;
+    case LVAL_ERR:
+      if(v.error == LERR_DIV_BY_ZERO) {
+        printf("Error : Division By Zero");
+      }
+      if(v.error == LERR_BAD_OP) {
+        printf("Error : Bad Operator");
+      }
+      if(v.error == LERR_BAD_NUM) {
+        printf("Error : Invalid Number")
+      }
+  }
+}
+
 i64 eval_op(i64 x, u8* op, i64 y);
 
 i64 eval(mpc_ast_t* t) {
