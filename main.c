@@ -31,8 +31,6 @@ typedef double f64;
 // bool
 typedef bool b8;
 
-// IF we are using a win32 sys
-#ifdef _WIN32
 #include <string.h>
 
 typedef struct {
@@ -47,12 +45,15 @@ enum {
   LVAL_ERR
 };
 
-/* enumeration of possible err types */ 
+/* enumeration of possible err types */
 enum {
   LERR_DIV_BY_ZERO,
   LERR_BAD_OP,
   LERR_BAD_NUM
-}
+};
+
+// IF we are using a win32 sys
+#ifdef _WIN32
 
 static u8 buffer[2048]; // buffer for user input
 
@@ -120,7 +121,7 @@ i64 eval_op(i64 x, u8* op, i64 y) {
 }
 
 
-i32 main(i32 argc, u8** argv) {
+i32 main(i32 argc, char** argv) {
 
   /* Parsers */
   mpc_parser_t* Number = mpc_new("number");
