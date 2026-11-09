@@ -56,6 +56,36 @@ void add_history(char* unused) {}
 // #include <editline/history.h>
 #endif
 
+i64 eval_op(i64 x, char* op, i64 y);
+
+i64 eval(mpc_ast_t* t) {
+  /* if tagged as num return */
+  if (strstr(t->tag, "number")) {
+    return (i64)atol(t->contents);
+  }
+
+  /* operator gives second child */ 
+  char* op = t->children[1]->contents;
+
+  i64 x = eval(t->children[2]);
+
+  usize i = 3;
+  while (i < (usize)t->children_num && strstr(t->children[i]->tag, "expr")) {
+    x = eval_op(x, op, eval(t->children[i]));
+    i++;
+  }
+
+  return x;
+}
+
+i64 eval_op(i64 x, char* op, i64 y) {
+  if (strcmp(op, "+") == 0) {return x + y;}
+  if (strcmp(op, "-") == 0) {return x - y;}
+  if (strcmp(op, "*") == 0) {return x * y;}
+  if (strcmp(op, "/") == 0) {return x / y;}
+  return 0;
+}
+
 
 int main(int argc, char** argv) {
 
@@ -95,8 +125,8 @@ int main(int argc, char** argv) {
     // printf("Your input was.. %s\n", input);
     mpc_result_t r;
     if(mpc_parse("<stdin>", input, Miso, &r)) {
-      /*on success*/
-      mpc_ast_print(r.output);
+      i64 result = eval(r.output);
+      printf("%lli\n", result);
       mpc_ast_delete(r.output);
     } else {
       mpc_err_print(r.error);
