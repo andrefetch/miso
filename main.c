@@ -35,28 +35,61 @@ typedef bool b8;
 #ifdef _WIN32
 #include <string.h>
 
-static char buffer[2048]; // buffer for user input
+typedef struct {
+  i32 type;
+  i64 num;
+  i32 err;
+} lval;
+
+/* enumeration for possible lval types (lisp values) */
+enum {
+  LVAL_NUM,
+  LVAL_ERR
+};
+
+/* enumeration of possible err types */ 
+enum {
+  LERR_DIV_BY_ZERO,
+  LERR_BAD_OP,
+  LERR_BAD_NUM
+}
+
+static u8 buffer[2048]; // buffer for user input
 
 /* fake readline func */
-char* readline(char* prompt) {
+u8* readline(u8* prompt) {
   fputs(prompt, stdout);
   fgets(buffer, 2048, stdin);
   usize len = strlen(buffer);
-  char* cpy = malloc(len+1); // + 1 because we include the null terminator 
+  u8* cpy = malloc(len+1); // + 1 because we include the null terminator 
   strcpy(cpy, buffer);
   cpy[len-1] = '\0'; //removes null terminator from cpy 
   return cpy;
 }
 
 /* fake add_history func */
-void add_history(char* unused) {}
+void add_history(u8* unused) {}
 
 #else 
 #include <editline/readline.h>
 // #include <editline/history.h>
 #endif
 
-i64 eval_op(i64 x, char* op, i64 y);
+lval lval_num(i64 x) {
+  lval v;
+  v.type = LVAL_NUM;
+  v.num = x;
+  return v;
+}
+
+lval lval_err(i32 x) {
+  lval v;
+  v.type = LVAL_ERR;
+  v.err = x;
+  return v;
+}
+
+i64 eval_op(i64 x, u8* op, i64 y);
 
 i64 eval(mpc_ast_t* t) {
   /* if tagged as num return */
@@ -65,7 +98,7 @@ i64 eval(mpc_ast_t* t) {
   }
 
   /* operator gives second child */ 
-  char* op = t->children[1]->contents;
+  u8* op = t->children[1]->contents;
 
   i64 x = eval(t->children[2]);
 
@@ -78,7 +111,7 @@ i64 eval(mpc_ast_t* t) {
   return x;
 }
 
-i64 eval_op(i64 x, char* op, i64 y) {
+i64 eval_op(i64 x, u8* op, i64 y) {
   if (strcmp(op, "+") == 0) {return x + y;}
   if (strcmp(op, "-") == 0) {return x - y;}
   if (strcmp(op, "*") == 0) {return x * y;}
@@ -87,7 +120,7 @@ i64 eval_op(i64 x, char* op, i64 y) {
 }
 
 
-int main(int argc, char** argv) {
+i32 main(i32 argc, u8** argv) {
 
   /* Parsers */
   mpc_parser_t* Number = mpc_new("number");
@@ -105,9 +138,9 @@ int main(int argc, char** argv) {
   ",
   Number, Operator, Expr, Miso);
 
-  const char *name = "Miso";
-  const char *version = "0.0.1";
-  const char *credits = "contribute @ github.com/andrefetch/miso";
+  const u8 *name = "Miso";
+  const u8 *version = "0.0.1";
+  const u8 *credits = "contribute @ github.com/andrefetch/miso";
 
   printf("%s Version %s\n", name, version);
   puts("Press Ctrl+c to Exit");
@@ -115,7 +148,7 @@ int main(int argc, char** argv) {
 
   while (1) {
 
-    char* input = readline("miso >> "); //outputs prompt
+    u8* input = readline("miso >> "); //outputs prompt
     if (input == NULL) {
       break;
     }
