@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <errno.h>
 
 // ints unsigned
 typedef uint8_t  u8;
@@ -110,18 +111,22 @@ void lval_print(lval v) {
   }
 }
 
-i64 eval_op(i64 x, u8* op, i64 y);
+lval eval_op(lval x, u8* op, lval y);
 
-i64 eval(mpc_ast_t* t) {
+lval eval(mpc_ast_t* t) {
   /* if tagged as num return */
   if (strstr(t->tag, "number")) {
-    return (i64)atol(t->contents);
+    errno = 0;
+    i64 x = strtol(t->contents, NULL, 10);
+    if (errno != 0) {
+      return lval_err(LERR_BAD_NUM);
+    }
+    return lval_num(x);
   }
 
   /* operator gives second child */ 
   u8* op = t->children[1]->contents;
-
-  i64 x = eval(t->children[2]);
+  lval x = eval(t->children[2]);
 
   usize i = 3;
   while (i < (usize)t->children_num && strstr(t->children[i]->tag, "expr")) {
@@ -132,12 +137,16 @@ i64 eval(mpc_ast_t* t) {
   return x;
 }
 
-i64 eval_op(i64 x, u8* op, i64 y) {
-  if (strcmp(op, "+") == 0) {return x + y;}
-  if (strcmp(op, "-") == 0) {return x - y;}
-  if (strcmp(op, "*") == 0) {return x * y;}
-  if (strcmp(op, "/") == 0) {return x / y;}
-  return 0;
+lval eval_op(lval x, u8* op, lval y) {
+  if (strcmp(op, "+") == 0) {return lval_num(x.num + y.num);}
+  if (strcmp(op, "-") == 0) {return lval_num(x.num - y.num);}
+  if (strcmp(op, "*") == 0) {return lval_num(x.num * y.num);}
+  if (strcmp(op, "/") == 0) {
+    return y.num == 0 
+    ? lval_err(LERR_DIV_BY_ZERO) 
+    : lval_num(x.num / y.num);
+  }
+  return lval_err(LERR_BAD_OP);
 }
 
 
@@ -179,8 +188,9 @@ i32 main(i32 argc, char** argv) {
     // printf("Your input was.. %s\n", input);
     mpc_result_t r;
     if(mpc_parse("<stdin>", input, Miso, &r)) {
-      i64 result = eval(r.output);
-      printf("%lli\n", result);
+      lval result = eval(r.output);
+      lval_print(result);
+      printf("\n");
       mpc_ast_delete(r.output);
     } else {
       mpc_err_print(r.error);
