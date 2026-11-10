@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <errno.h>
 
 // ints unsigned
 typedef uint8_t  u8;
@@ -31,43 +32,101 @@ typedef double f64;
 // bool
 typedef bool b8;
 
-// IF we are using a win32 sys
-#ifdef _WIN32
 #include <string.h>
 
-static char buffer[2048]; // buffer for user input
+typedef struct {
+  i32 type;
+  i64 num;
+  i32 err;
+} lval;
+
+/* enumeration for possible lval types (lisp values) */
+enum {
+  LVAL_NUM,
+  LVAL_ERR
+};
+
+/* enumeration of possible err types */
+enum {
+  LERR_DIV_BY_ZERO,
+  LERR_BAD_OP,
+  LERR_BAD_NUM
+};
+
+// IF we are using a win32 sys
+#ifdef _WIN32
+
+static u8 buffer[2048]; // buffer for user input
 
 /* fake readline func */
-char* readline(char* prompt) {
+u8* readline(u8* prompt) {
   fputs(prompt, stdout);
   fgets(buffer, 2048, stdin);
   usize len = strlen(buffer);
-  char* cpy = malloc(len+1); // + 1 because we include the null terminator 
+  u8* cpy = malloc(len+1); // + 1 because we include the null terminator 
   strcpy(cpy, buffer);
   cpy[len-1] = '\0'; //removes null terminator from cpy 
   return cpy;
 }
 
 /* fake add_history func */
-void add_history(char* unused) {}
+void add_history(u8* unused) {}
 
 #else 
 #include <editline/readline.h>
 // #include <editline/history.h>
 #endif
 
-i64 eval_op(i64 x, char* op, i64 y);
+lval lval_num(i64 x) {
+  lval v;
+  v.type = LVAL_NUM;
+  v.num = x;
+  return v;
+}
 
-i64 eval(mpc_ast_t* t) {
+lval lval_err(i32 x) {
+  lval v;
+  v.type = LVAL_ERR;
+  v.err = x;
+  return v;
+}
+
+/* prints lisp err val */ 
+void lval_print(lval v) {
+  switch(v.type) {
+    case LVAL_NUM:
+      // case that it's a number, we break
+      printf("%li", v.num);
+      break;
+    case LVAL_ERR:
+      if(v.err == LERR_DIV_BY_ZERO) {
+        printf("Error : Division By Zero");
+      }
+      else if(v.err == LERR_BAD_OP) {
+        printf("Error : Bad Operator");
+      }
+      else if(v.err == LERR_BAD_NUM) {
+        printf("Error : Invalid Number");
+      }
+  }
+}
+
+lval eval_op(lval x, u8* op, lval y);
+
+lval eval(mpc_ast_t* t) {
   /* if tagged as num return */
   if (strstr(t->tag, "number")) {
-    return (i64)atol(t->contents);
+    errno = 0;
+    i64 x = strtol(t->contents, NULL, 10);
+    if (errno != 0) {
+      return lval_err(LERR_BAD_NUM);
+    }
+    return lval_num(x);
   }
 
   /* operator gives second child */ 
-  char* op = t->children[1]->contents;
-
-  i64 x = eval(t->children[2]);
+  u8* op = t->children[1]->contents;
+  lval x = eval(t->children[2]);
 
   usize i = 3;
   while (i < (usize)t->children_num && strstr(t->children[i]->tag, "expr")) {
@@ -78,16 +137,20 @@ i64 eval(mpc_ast_t* t) {
   return x;
 }
 
-i64 eval_op(i64 x, char* op, i64 y) {
-  if (strcmp(op, "+") == 0) {return x + y;}
-  if (strcmp(op, "-") == 0) {return x - y;}
-  if (strcmp(op, "*") == 0) {return x * y;}
-  if (strcmp(op, "/") == 0) {return x / y;}
-  return 0;
+lval eval_op(lval x, u8* op, lval y) {
+  if (strcmp(op, "+") == 0) {return lval_num(x.num + y.num);}
+  if (strcmp(op, "-") == 0) {return lval_num(x.num - y.num);}
+  if (strcmp(op, "*") == 0) {return lval_num(x.num * y.num);}
+  if (strcmp(op, "/") == 0) {
+    return y.num == 0 
+    ? lval_err(LERR_DIV_BY_ZERO) 
+    : lval_num(x.num / y.num);
+  }
+  return lval_err(LERR_BAD_OP);
 }
 
 
-int main(int argc, char** argv) {
+i32 main(i32 argc, char** argv) {
 
   /* Parsers */
   mpc_parser_t* Number = mpc_new("number");
@@ -105,9 +168,9 @@ int main(int argc, char** argv) {
   ",
   Number, Operator, Expr, Miso);
 
-  const char *name = "Miso";
-  const char *version = "0.0.1";
-  const char *credits = "contribute @ github.com/andrefetch/miso";
+  const u8 *name = "Miso";
+  const u8 *version = "0.0.1";
+  const u8 *credits = "contribute @ github.com/andrefetch/miso";
 
   printf("%s Version %s\n", name, version);
   puts("Press Ctrl+c to Exit");
@@ -115,7 +178,7 @@ int main(int argc, char** argv) {
 
   while (1) {
 
-    char* input = readline("miso >> "); //outputs prompt
+    u8* input = readline("miso >> "); //outputs prompt
     if (input == NULL) {
       break;
     }
@@ -125,8 +188,9 @@ int main(int argc, char** argv) {
     // printf("Your input was.. %s\n", input);
     mpc_result_t r;
     if(mpc_parse("<stdin>", input, Miso, &r)) {
-      i64 result = eval(r.output);
-      printf("%lli\n", result);
+      lval result = eval(r.output);
+      lval_print(result);
+      printf("\n");
       mpc_ast_delete(r.output);
     } else {
       mpc_err_print(r.error);
