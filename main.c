@@ -37,13 +37,18 @@ typedef bool b8;
 typedef struct {
   i32 type;
   i64 num;
-  i32 err;
+  char* err;
+  char* sym;
+  i32 count;
+  struct lval** cell;
 } lval;
 
 /* enumeration for possible lval types (lisp values) */
 enum {
   LVAL_NUM,
-  LVAL_ERR
+  LVAL_ERR,
+  LVAL_SYM,
+  LVAL_SEXPR
 };
 
 /* enumeration of possible err types */
