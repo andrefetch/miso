@@ -154,7 +154,8 @@ i32 main(i32 argc, char** argv) {
 
   /* Parsers */
   mpc_parser_t* Number = mpc_new("number");
-  mpc_parser_t* Operator = mpc_new("operator");
+  mpc_parser_t* Symbol = mpc_new("symbol");
+  mpc_parser_t* Sexpr = mpc_new("sexpr");
   mpc_parser_t* Expr = mpc_new("expr");
   mpc_parser_t* Miso = mpc_new("miso");
 
@@ -162,11 +163,12 @@ i32 main(i32 argc, char** argv) {
   mpca_lang(MPCA_LANG_DEFAULT,
   "                                                     \
     number   : /-?[0-9]+/ ;                             \
-    operator : '+' | '-' | '*' | '/' ;                  \
+    symbol   : '+' | '-' | '*' | '/' ;                  \
+    sexpr    : '(' <expr>* ')' ;                        \
     expr     : <number> | '(' <operator> <expr>+ ')' ;  \
     miso     : /^/ <operator> <expr>+ /$/ ;             \
   ",
-  Number, Operator, Expr, Miso);
+  Number, Symbol, Sexpr, Expr, Miso);
 
   const u8 *name = "Miso";
   const u8 *version = "0.0.1";
@@ -202,7 +204,7 @@ i32 main(i32 argc, char** argv) {
   }
 
   /* Before return, undefine and del parsers */
-  mpc_cleanup(4, Number, Operator, Expr, Miso);
+  mpc_cleanup(5, Number, Symbol, Sexpr, Expr, Miso);
 
   return 0;
 
