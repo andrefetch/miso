@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <string.h>
 
 // ints unsigned
 typedef uint8_t  u8;
@@ -83,16 +84,33 @@ void add_history(u8* unused) {}
 #endif
 
 lval lval_num(i64 x) {
-  lval v;
-  v.type = LVAL_NUM;
-  v.num = x;
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_NUM;
+  v->num = x;
   return v;
 }
 
-lval lval_err(i32 x) {
-  lval v;
-  v.type = LVAL_ERR;
-  v.err = x;
+lval lval_err(char* m) {
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_ERR;
+  v->err = x;
+  strcpy(v->err, m);
+  return v;
+}
+
+lval* lval_sym(char* s) {
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_SYM;
+  v->sym = malloc(strlen(s) + 1);
+  strcpy(v->sym, s);
+  return v;
+}
+
+lval* lval_sexpr(void) {
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_SEXPR;
+  v->count = 0;
+  v->cell = NULL;
   return v;
 }
 
