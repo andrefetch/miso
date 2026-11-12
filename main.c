@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <string.h>
 
 // ints unsigned
 typedef uint8_t  u8;
@@ -34,16 +35,21 @@ typedef bool b8;
 
 #include <string.h>
 
-typedef struct {
+typedef struct lval {
   i32 type;
   i64 num;
   i32 err;
+  char* sym;
+  i32 count;
+  struct lval** cell;
 } lval;
 
 /* enumeration for possible lval types (lisp values) */
 enum {
   LVAL_NUM,
-  LVAL_ERR
+  LVAL_ERR,
+  LVAL_SYM,
+  LVAL_SEXPR
 };
 
 /* enumeration of possible err types */
@@ -56,64 +62,179 @@ enum {
 // IF we are using a win32 sys
 #ifdef _WIN32
 
-static u8 buffer[2048]; // buffer for user input
+static char buffer[2048]; // buffer for user input
 
 /* fake readline func */
-u8* readline(u8* prompt) {
+char* readline(char* prompt) {
   fputs(prompt, stdout);
   fgets(buffer, 2048, stdin);
   usize len = strlen(buffer);
-  u8* cpy = malloc(len+1); // + 1 because we include the null terminator 
+  char* cpy = malloc(len+1); // + 1 because we include the null terminator 
   strcpy(cpy, buffer);
   cpy[len-1] = '\0'; //removes null terminator from cpy 
   return cpy;
 }
 
 /* fake add_history func */
-void add_history(u8* unused) {}
+void add_history(char* unused) {}
 
 #else 
 #include <editline/readline.h>
 // #include <editline/history.h>
 #endif
 
-lval lval_num(i64 x) {
-  lval v;
-  v.type = LVAL_NUM;
-  v.num = x;
+lval* lval_num(i64 x) {
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_NUM;
+  v->num = x;
   return v;
 }
 
-lval lval_err(i32 x) {
-  lval v;
-  v.type = LVAL_ERR;
-  v.err = x;
+lval* lval_err(i32 x) {
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_ERR;
+  v->err = x;
   return v;
 }
 
-/* prints lisp err val */ 
-void lval_print(lval v) {
-  switch(v.type) {
+lval* lval_sym(char* s) {
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_SYM;
+  v->sym = malloc(strlen(s) + 1);
+  strcpy(v->sym, s);
+  return v;
+}
+
+lval* lval_sexpr(void) {
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_SEXPR;
+  v->count = 0;
+  v->cell = NULL;
+  return v;
+}
+
+void lval_print(lval* v);
+void lval_expr_print(lval* v, char open, char close);
+
+void lval_expr_print(lval* v, char open, char close) {
+  putchar(open);
+  for (i32 i = 0; i < v->count; i++) {
+    lval_print(v->cell[i]);
+    
+    // dont print trailing space if last element
+    if (i != v->count-1) {
+      putchar(' ');
+    }
+  }
+  putchar(close);
+}
+
+/* prints lisp val */
+void lval_print(lval* v) {
+  switch(v->type) {
     case LVAL_NUM:
-      // case that it's a number, we break
-      printf("%li", v.num);
+      printf("%lld", v->num);
       break;
     case LVAL_ERR:
-      if(v.err == LERR_DIV_BY_ZERO) {
-        printf("Error : Division By Zero");
+      if(v->err == LERR_DIV_BY_ZERO) {
+        printf("Error: Division By Zero");
       }
-      else if(v.err == LERR_BAD_OP) {
-        printf("Error : Bad Operator");
+      else if(v->err == LERR_BAD_OP) {
+        printf("Error: Bad Operator");
       }
-      else if(v.err == LERR_BAD_NUM) {
-        printf("Error : Invalid Number");
+      else if(v->err == LERR_BAD_NUM) {
+        printf("Error: Invalid Number");
       }
+      break;
+    case LVAL_SYM:
+      printf("%s", v->sym);
+      break;
+    case LVAL_SEXPR:
+      lval_expr_print(v, '(', ')');
+      break;
   }
 }
 
-lval eval_op(lval x, u8* op, lval y);
+void lval_println(lval* v) { 
+  lval_print(v); 
+  putchar('\n'); 
+}
 
-lval eval(mpc_ast_t* t) {
+
+void lval_del(lval* v) {
+
+  switch(v->type) {
+    case LVAL_NUM:
+      break;
+    case LVAL_ERR:
+      break;
+    case LVAL_SYM:
+      free(v->sym);
+      break;
+    case LVAL_SEXPR:
+      for (i64 i = 0; i < v->count; i++) {
+        lval_del(v->cell[i]);
+      }
+      free(v->cell);
+      break;
+  }
+  free(v);
+}
+
+lval* lval_add(lval* v, lval* x);
+
+lval* lval_read_num(mpc_ast_t* t) {
+  errno = 0;
+  i64 x = strtol(t->contents, NULL, 10);
+  return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
+}
+
+lval* lval_read(mpc_ast_t* t) {
+
+  if (strstr(t->tag, "number")) {
+    return lval_read_num(t);
+  }
+
+  if(strstr(t->tag, "symbol")) {
+    return lval_sym(t->contents);
+  }
+
+  lval* x = lval_sexpr();
+
+  for (i32 i = 0; i < t->children_num; i++) {
+    if (strcmp(t->children[i]->contents, "(") == 0) {
+      continue;
+    }
+    if (strcmp(t->children[i]->contents, ")") == 0) {
+      continue;
+    }
+    if (strcmp(t->children[i]->tag, "regex") == 0) {
+      continue;
+    }
+
+    x = lval_add(x, lval_read(t->children[i]));
+  }
+
+  return x;
+
+}
+
+lval* lval_add(lval* v, lval* x) {
+  v->count++;
+  lval** temp = realloc(v->cell, sizeof(lval*) * v->count);
+  if (temp == NULL) {
+    free(v);
+    return NULL;
+  }
+  v->cell = temp;
+  v->cell[v->count-1] = x;
+  return v;
+}
+
+lval* eval_op(lval* x, char* op, lval* y);
+lval* eval(mpc_ast_t* t);
+
+lval* eval(mpc_ast_t* t) {
   /* if tagged as num return */
   if (strstr(t->tag, "number")) {
     errno = 0;
@@ -125,8 +246,8 @@ lval eval(mpc_ast_t* t) {
   }
 
   /* operator gives second child */ 
-  u8* op = t->children[1]->contents;
-  lval x = eval(t->children[2]);
+  char* op = t->children[1]->contents;
+  lval* x = eval(t->children[2]);
 
   usize i = 3;
   while (i < (usize)t->children_num && strstr(t->children[i]->tag, "expr")) {
@@ -137,24 +258,27 @@ lval eval(mpc_ast_t* t) {
   return x;
 }
 
-lval eval_op(lval x, u8* op, lval y) {
-  if (strcmp(op, "+") == 0) {return lval_num(x.num + y.num);}
-  if (strcmp(op, "-") == 0) {return lval_num(x.num - y.num);}
-  if (strcmp(op, "*") == 0) {return lval_num(x.num * y.num);}
+lval* eval_op(lval* x, char* op, lval* y) {
+  if (strcmp(op, "+") == 0) {return lval_num(x->num + y->num);}
+  if (strcmp(op, "-") == 0) {return lval_num(x->num - y->num);}
+  if (strcmp(op, "*") == 0) {return lval_num(x->num * y->num);}
   if (strcmp(op, "/") == 0) {
-    return y.num == 0 
+    return y->num == 0 
     ? lval_err(LERR_DIV_BY_ZERO) 
-    : lval_num(x.num / y.num);
+    : lval_num(x->num / y->num);
   }
   return lval_err(LERR_BAD_OP);
 }
 
 
 i32 main(i32 argc, char** argv) {
+  (void)argc;
+  (void)argv;
 
   /* Parsers */
   mpc_parser_t* Number = mpc_new("number");
-  mpc_parser_t* Operator = mpc_new("operator");
+  mpc_parser_t* Symbol = mpc_new("symbol");
+  mpc_parser_t* Sexpr = mpc_new("sexpr");
   mpc_parser_t* Expr = mpc_new("expr");
   mpc_parser_t* Miso = mpc_new("miso");
 
@@ -162,15 +286,16 @@ i32 main(i32 argc, char** argv) {
   mpca_lang(MPCA_LANG_DEFAULT,
   "                                                     \
     number   : /-?[0-9]+/ ;                             \
-    operator : '+' | '-' | '*' | '/' ;                  \
-    expr     : <number> | '(' <operator> <expr>+ ')' ;  \
-    miso     : /^/ <operator> <expr>+ /$/ ;             \
+    symbol   : '+' | '-' | '*' | '/' ;                  \
+    sexpr    : '(' <expr>* ')' ;                        \
+    expr     : <number> | '(' <symbol> <expr>+ ')' ;    \
+    miso     : /^/ <symbol> <expr>+ /$/ ;               \
   ",
-  Number, Operator, Expr, Miso);
+  Number, Symbol, Sexpr, Expr, Miso, (mpc_parser_t*)NULL);
 
-  const u8 *name = "Miso";
-  const u8 *version = "0.0.1";
-  const u8 *credits = "contribute @ github.com/andrefetch/miso";
+  const char *name = "Miso";
+  const char *version = "0.0.1";
+  const char *credits = "contribute @ github.com/andrefetch/miso";
 
   printf("%s Version %s\n", name, version);
   puts("Press Ctrl+c to Exit");
@@ -178,7 +303,7 @@ i32 main(i32 argc, char** argv) {
 
   while (1) {
 
-    u8* input = readline("miso >> "); //outputs prompt
+    char* input = readline("miso >> "); //outputs prompt
     if (input == NULL) {
       break;
     }
@@ -187,22 +312,21 @@ i32 main(i32 argc, char** argv) {
 
     // printf("Your input was.. %s\n", input);
     mpc_result_t r;
-    if(mpc_parse("<stdin>", input, Miso, &r)) {
-      lval result = eval(r.output);
-      lval_print(result);
-      printf("\n");
+    if (mpc_parse("<stdin>", input, Miso, &r)) {
+      lval* x = lval_read(r.output);
+      lval_println(x);
+      lval_del(x);
       mpc_ast_delete(r.output);
-    } else {
+    } else {    
       mpc_err_print(r.error);
       mpc_err_delete(r.error);
-    }
-    
+    } 
     free(input);
 
   }
 
   /* Before return, undefine and del parsers */
-  mpc_cleanup(4, Number, Operator, Expr, Miso);
+  mpc_cleanup(5, Number, Symbol, Sexpr, Expr, Miso);
 
   return 0;
 
