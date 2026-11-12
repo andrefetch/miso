@@ -113,6 +113,22 @@ lval* lval_sexpr(void) {
   return v;
 }
 
+void lval_print(lval* v);
+void lval_expr_print(lval* v, char open, char close);
+
+void lval_expr_print(lval* v, char open, char close) {
+  putchar(open);
+  for (i32 i = 0; i < v->count; i++) {
+    lval_print(v->cell[i]);
+    
+    // dont print trailing space if last element
+    if (i != v->count-1) {
+      putchar(' ');
+    }
+  }
+  putchar(close);
+}
+
 /* prints lisp val */
 void lval_print(lval* v) {
   switch(v->type) {
@@ -130,30 +146,6 @@ void lval_print(lval* v) {
         printf("Error: Invalid Number");
       }
       break;
-  }
-}
-
-void lval_expr_print(lval* v, char open, char close) {
-  putchar(open);
-  for (i32 i = 0; i < v->count; i++) {
-    lval_print(v->cell[i]);
-    
-    // dont print trailing space if last element
-    if (i != v->count-1) {
-      putchar(' ');
-    }
-  }
-  putchar(close);
-}
-
-void lval_print(lval* v) {
-  switch(v->type) {
-    case LVAL_NUM:
-      printf("%li", v->num);
-      break;
-    case LVAL_ERR:
-      printf("Error: %s", v->err);
-      break;
     case LVAL_SYM:
       printf("%s", v->sym);
       break;
@@ -162,6 +154,12 @@ void lval_print(lval* v) {
       break;
   }
 }
+
+void lval_println(lval* v) { 
+  lval_print(v); 
+  putchar('\n'); 
+}
+
 
 void lval_del(lval* v) {
 
@@ -234,6 +232,7 @@ lval* lval_add(lval* v, lval* x) {
 }
 
 lval* eval_op(lval* x, char* op, lval* y);
+lval* eval(mpc_ast_t* t);
 
 lval* eval(mpc_ast_t* t) {
   /* if tagged as num return */
@@ -273,6 +272,8 @@ lval* eval_op(lval* x, char* op, lval* y) {
 
 
 i32 main(i32 argc, char** argv) {
+  (void)argc;
+  (void)argv;
 
   /* Parsers */
   mpc_parser_t* Number = mpc_new("number");
@@ -287,10 +288,10 @@ i32 main(i32 argc, char** argv) {
     number   : /-?[0-9]+/ ;                             \
     symbol   : '+' | '-' | '*' | '/' ;                  \
     sexpr    : '(' <expr>* ')' ;                        \
-    expr     : <number> | '(' <operator> <expr>+ ')' ;  \
-    miso     : /^/ <operator> <expr>+ /$/ ;             \
+    expr     : <number> | '(' <symbol> <expr>+ ')' ;    \
+    miso     : /^/ <symbol> <expr>+ /$/ ;               \
   ",
-  Number, Symbol, Sexpr, Expr, Miso);
+  Number, Symbol, Sexpr, Expr, Miso, (mpc_parser_t*)NULL);
 
   const char *name = "Miso";
   const char *version = "0.0.1";
@@ -311,17 +312,15 @@ i32 main(i32 argc, char** argv) {
 
     // printf("Your input was.. %s\n", input);
     mpc_result_t r;
-    if(mpc_parse("<stdin>", input, Miso, &r)) {
-      lval* result = eval(r.output);
-      lval_print(result);
-      lval_del(result);
-      printf("\n");
+    if (mpc_parse("<stdin>", input, Miso, &r)) {
+      lval* x = lval_read(r.output);
+      lval_println(x);
+      lval_del(x);
       mpc_ast_delete(r.output);
-    } else {
+    } else {    
       mpc_err_print(r.error);
       mpc_err_delete(r.error);
-    }
-    
+    } 
     free(input);
 
   }
