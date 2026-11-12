@@ -153,10 +153,12 @@ void lval_del(lval* v) {
   free(v);
 }
 
+lval* lval_add(lval* v, lval* x);
+
 lval* lval_read_num(mpc_ast_t* t) {
   errno = 0;
   i64 x = strtol(t->contents, NULL, 10);
-  return errno != ERANGE ? lval_num(x) : lval_err("invalid error");
+  return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
 }
 
 lval* lval_read(mpc_ast_t* t) {
@@ -169,14 +171,7 @@ lval* lval_read(mpc_ast_t* t) {
     return lval_sym(t->contents);
   }
 
-  lval* x = NULL;
-  if(strcmp(t->tag, ">") == 0) {
-    x = lval_sexpr();
-  }
-
-  if(strcmp(t->tag, "sexpr")) {
-    x = lval_sexpr();
-  }
+  lval* x = lval_sexpr();
 
   for (i32 i = 0; i < t->children_num; i++) {
     if (strcmp(t->children[i]->contents, "(") == 0) {
@@ -189,7 +184,7 @@ lval* lval_read(mpc_ast_t* t) {
       continue;
     }
 
-    x = lval_add(x, lval_read(t->children[i]))
+    x = lval_add(x, lval_read(t->children[i]));
   }
 
   return x;
@@ -198,7 +193,12 @@ lval* lval_read(mpc_ast_t* t) {
 
 lval* lval_add(lval* v, lval* x) {
   v->count++;
-  v->cell = realloc(v->cell, sizeof(lval*) * v->count);
+  lval** temp = realloc(v->cell, sizeof(lval*) * v->count);
+  if (temp == NULL) {
+    free(v);
+    return NULL;
+  }
+  v->cell = temp;
   v->cell[v->count-1] = x;
   return v;
 }
