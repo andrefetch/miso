@@ -196,6 +196,13 @@ lval* lval_read(mpc_ast_t* t) {
 
 }
 
+lval* lval_add(lval* v, lval* x) {
+  v->count++;
+  v->cell = realloc(v->cell, sizeof(lval*) * v->count);
+  v->cell[v->count-1] = x;
+  return v;
+}
+
 lval* eval_op(lval* x, char* op, lval* y);
 
 lval* eval(mpc_ast_t* t) {
