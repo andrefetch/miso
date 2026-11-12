@@ -133,6 +133,36 @@ void lval_print(lval* v) {
   }
 }
 
+void lval_expr_print(lval* v, char open, char close) {
+  putchar(open);
+  for (i32 i = 0; i < v->count; i++) {
+    lval_print(v->cell[i]);
+    
+    // dont print trailing space if last element
+    if (i != v->count-1) {
+      putchar(' ');
+    }
+  }
+  putchar(close);
+}
+
+void lval_print(lval* v) {
+  switch(v->type) {
+    case LVAL_NUM:
+      printf("%li", v->num);
+      break;
+    case LVAL_ERR:
+      printf("Error: %s", v->err);
+      break;
+    case LVAL_SYM:
+      printf("%s", v->sym);
+      break;
+    case LVAL_SEXPR:
+      lval_expr_print(v, '(', ')');
+      break;
+  }
+}
+
 void lval_del(lval* v) {
 
   switch(v->type) {
