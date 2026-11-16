@@ -234,6 +234,7 @@ lval* lval_add(lval* v, lval* x) {
 
 lval* eval_op(lval* x, char* op, lval* y);
 lval* eval(mpc_ast_t* t);
+lval* lval_eval(lval* v);
 
 lval* eval(mpc_ast_t* t) {
   /* if tagged as num return */
@@ -339,6 +340,10 @@ lval* lval_expr_sexpr(lval* v) {
 
   /* Evaluating children */
   for (i32 i = 0; i < v->count; i++) {
+    v->cell[i] = lval_eval(v->cell[i]);
+  }
+
+  for (i32 i = 0; i < v->count; i++) {
     if(v->cell[i]->type == LVAL_ERR) {
       lval_take(v, i);
     }
@@ -390,7 +395,7 @@ i32 main(i32 argc, char** argv) {
     number   : /-?[0-9]+/ ;                             \
     symbol   : '+' | '-' | '*' | '/' ;                  \
     sexpr    : '(' <expr>* ')' ;                        \
-    expr     : <number> | '(' <symbol> <expr>+ ')' ;    \
+    expr     : <number> | <symbol> | <sexpr> ;                  \
     miso     : /^/ <symbol> <expr>+ /$/ ;               \
   ",
   Number, Symbol, Sexpr, Expr, Miso, (mpc_parser_t*)NULL);
