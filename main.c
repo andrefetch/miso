@@ -270,6 +270,36 @@ lval* eval_op(lval* x, char* op, lval* y) {
   return lval_err(LERR_BAD_OP);
 }
 
+lval* lval_expr_sexpr(lval* v) {
+
+  /* Evaluating children */
+  for (i32 i = 0; i < v->count; i++) {
+    if(v->cell[i]->type == LVAL_ERR) {
+      lval_take(v, i);
+    }
+  }
+
+  if (v->count == 0) {
+    return v;
+  }
+
+  if (v->count == 1) {
+    return lval_take(v, 0);
+  }
+
+  lval* f = lval_pop(v, 0);
+  if (f->type != LVAL_SYM) {
+    lval_del(f);
+    lval_del(v);
+    return lval_err("S-expression does not start with a symbol!")
+  }
+
+  /* Call builtin with operator */
+  lval* result = builtin_op(v, f->sym);
+  lval_del(f);
+  return result;
+}
+
 
 i32 main(i32 argc, char** argv) {
   (void)argc;
