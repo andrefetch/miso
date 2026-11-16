@@ -56,7 +56,8 @@ enum {
 enum {
   LERR_DIV_BY_ZERO,
   LERR_BAD_OP,
-  LERR_BAD_NUM
+  LERR_BAD_NUM,
+  LERR_BAD_TYPE
 };
 
 // IF we are using a win32 sys
@@ -275,7 +276,7 @@ lval* lval_pop(lval* v, i32 i) {
   lval* x = v->cell[i];
 
   /* Shift memory after the item at "i" over the top */
-  memmove(&v->cell[i], &v->cell[i+1], sizeof(lval*) * (v->count[i - 1]));
+  memmove(&v->cell[i], &v->cell[i+1], sizeof(lval*) * (v->count - 1));
 
   v->count--;
 
@@ -288,6 +289,49 @@ lval* lval_pop(lval* v, i32 i) {
 lval* lval_take(lval* v, i32 i) {
   lval* x = lval_pop(v, i);
   lval_del(v);
+  return x;
+}
+
+lval* builtin_op(lval* a, char* op) {
+  /* ensures all arguments are numbers */
+
+  for (i32 i = 0; i < a->count; i++){
+    if(a->cell[i]->type != LVAL_NUM) {
+      lval_del(a);
+      return lval_err(LERR_BAD_TYPE);
+    }
+  }
+  
+  /* pops first element */
+  lval* x = lval_pop(a, 0);
+
+  /* if no args provided and subtraction, then perform unary negation */
+  if((strcmp(op, "-") == 0) && a->count == 0) {
+    x->num = -x->num;
+  }
+
+  while (a->count > 0) {
+
+    // pops next element
+    lval *y = lval_pop(a, 0);
+
+    if (strcmp(op, "+") == 0) { x->num += y->num; }
+    if (strcmp(op, "-") == 0) { x->num -= y->num; }
+    if (strcmp(op, "*") == 0) { x->num *= y->num; }
+    if (strcmp(op, "/") == 0) {
+      if (y->num == 0) {
+        lval_del(y);
+        lval_del(a);
+        lval_del(x);
+        return lval_err(LERR_DIV_BY_ZERO);
+      }
+      x->num /= y->num;
+    }
+
+    lval_del(y);
+  }
+
+  lval_del(a); 
   return x;
 }
 
@@ -312,7 +356,7 @@ lval* lval_expr_sexpr(lval* v) {
   if (f->type != LVAL_SYM) {
     lval_del(f);
     lval_del(v);
-    return lval_err("S-expression does not start with a symbol!")
+    return lval_err(LERR_BAD_OP);
   }
 
   /* Call builtin with operator */
@@ -323,7 +367,7 @@ lval* lval_expr_sexpr(lval* v) {
 
 lval* lval_eval(lval* v) {
   if (v->type == LVAL_SEXPR){
-    return lval_eval_sexpr(v);
+    return lval_expr_sexpr(v);
   }
   return v;
 }
