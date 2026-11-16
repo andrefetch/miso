@@ -415,7 +415,7 @@ i32 main(i32 argc, char** argv) {
     // printf("Your input was.. %s\n", input);
     mpc_result_t r;
     if (mpc_parse("<stdin>", input, Miso, &r)) {
-      lval* x = lval_read(r.output);
+      lval* x = lval_eval(lval_read(r.output));
       lval_println(x);
       lval_del(x);
       mpc_ast_delete(r.output);
