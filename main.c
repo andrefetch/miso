@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <errno.h>
@@ -134,7 +135,7 @@ void lval_expr_print(lval* v, char open, char close) {
 void lval_print(lval* v) {
   switch(v->type) {
     case LVAL_NUM:
-      printf("%lld", v->num);
+      printf("%" PRId64, v->num);
       break;
     case LVAL_ERR:
       if(v->err == LERR_DIV_BY_ZERO) {
