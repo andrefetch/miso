@@ -270,6 +270,27 @@ lval* eval_op(lval* x, char* op, lval* y) {
   return lval_err(LERR_BAD_OP);
 }
 
+lval* lval_pop(lval* v, i32 i) {
+  /* find the item @ i*/
+  lval* x = v->cell[i];
+
+  /* Shift memory after the item at "i" over the top */
+  memmove(&v->cell[i], &v->cell[i+1], sizeof(lval*) * (v->count[i - 1]));
+
+  v->count--;
+
+  /* realloc memory used */
+  v->cell = realloc(v->cell, sizeof(lval*) * v->count);
+
+  return x;
+}
+
+lval* lval_take(lval* v, i32 i) {
+  lval* x = lval_pop(v, i);
+  lval_del(v);
+  return x;
+}
+
 lval* lval_expr_sexpr(lval* v) {
 
   /* Evaluating children */
@@ -298,6 +319,13 @@ lval* lval_expr_sexpr(lval* v) {
   lval* result = builtin_op(v, f->sym);
   lval_del(f);
   return result;
+}
+
+lval* lval_eval(lval* v) {
+  if (v->type == LVAL_SEXPR){
+    return lval_eval_sexpr(v);
+  }
+  return v;
 }
 
 
