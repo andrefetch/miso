@@ -386,6 +386,7 @@ i32 main(i32 argc, char** argv) {
   mpc_parser_t* Number = mpc_new("number");
   mpc_parser_t* Symbol = mpc_new("symbol");
   mpc_parser_t* Sexpr = mpc_new("sexpr");
+  mpc_parser_t* Qexpr = mpc_new("qexpr")
   mpc_parser_t* Expr = mpc_new("expr");
   mpc_parser_t* Miso = mpc_new("miso");
 
@@ -398,7 +399,7 @@ i32 main(i32 argc, char** argv) {
     expr     : <number> | <symbol> | <sexpr> ;                  \
     miso     : /^/ <symbol> <expr>+ /$/ ;               \
   ",
-  Number, Symbol, Sexpr, Expr, Miso, (mpc_parser_t*)NULL);
+  Number, Symbol, Sexpr, Expr, Miso, Qexpr, (mpc_parser_t*)NULL);
 
   const char *name = "Miso";
   const char *version = "0.0.1";
@@ -433,7 +434,7 @@ i32 main(i32 argc, char** argv) {
   }
 
   /* Before return, undefine and del parsers */
-  mpc_cleanup(5, Number, Symbol, Sexpr, Expr, Miso);
+  mpc_cleanup(5, Number, Symbol, Sexpr, Qexpr, Expr, Miso);
 
   return 0;
 
