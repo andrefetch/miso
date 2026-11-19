@@ -49,7 +49,8 @@ enum {
   LVAL_NUM,
   LVAL_ERR,
   LVAL_SYM,
-  LVAL_SEXPR
+  LVAL_SEXPR,
+  LVAL_QEXPR
 };
 
 /* enumeration of possible err types */
@@ -377,6 +378,15 @@ lval* lval_eval(lval* v) {
   return v;
 }
 
+/* pointer to a new empty QExpr lval */
+lval* lval_qexpr(void) {
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_QEXPR;
+  v->count = 0;
+  v->cell = NULL;
+  return v;
+}
+
 
 i32 main(i32 argc, char** argv) {
   (void)argc;
@@ -396,7 +406,8 @@ i32 main(i32 argc, char** argv) {
     number   : /-?[0-9]+/ ;                             \
     symbol   : '+' | '-' | '*' | '/' ;                  \
     sexpr    : '(' <expr>* ')' ;                        \
-    expr     : <number> | <symbol> | <sexpr> ;                  \
+    qexpr    : '{' <expr>* '}' ;                        \
+    expr     : <number> | <symbol> | <sexpr> ;          \
     miso     : /^/ <symbol> <expr>+ /$/ ;               \
   ",
   Number, Symbol, Sexpr, Expr, Miso, Qexpr, (mpc_parser_t*)NULL);
