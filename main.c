@@ -434,7 +434,7 @@ i32 main(i32 argc, char** argv) {
   }
 
   /* Before return, undefine and del parsers */
-  mpc_cleanup(5, Number, Symbol, Sexpr, Qexpr, Expr, Miso);
+  mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Miso);
 
   return 0;
 
